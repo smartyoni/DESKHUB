@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import { 
-  Briefcase, 
-  FolderOpen, 
-  Plus, 
-  Save, 
-  Trash2, 
-  Menu, 
-  X, 
-  ChevronDown, 
-  ChevronRight, 
-  ExternalLink, 
+import {
+  Briefcase,
+  FolderOpen,
+  Plus,
+  Save,
+  Trash2,
+  Menu,
+  X,
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
   Search,
   Check,
   Pencil,
@@ -1766,7 +1766,7 @@ const App = () => {
                 )}
             </main>
         </div>
-        
+
         <MobileBottomNav mode={mode} setMode={(m) => {
             setMode(m);
             setIsSidebarOpen(true);
