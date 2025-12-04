@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /DESKHUB/
+Disallow: /DESKHUB/admin
+Disallow: /DESKHUB/api
+
+Sitemap: https://smartyoni.github.io/DESKHUB/sitemap.xml
