@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
+import { loginAnonymously, onAuthStateChange } from "./src/firebase/auth-service";
+import {
+  saveDocument,
+  getAllDocuments,
+  subscribeToCollection,
+  setIsSyncing,
+} from "./src/firebase/firestore-service";
 import {
   Briefcase,
   FolderOpen,
@@ -1493,47 +1500,113 @@ const App = () => {
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'project' | 'category' | 'archiveItem' | 'journal', id: string } | null>(null);
 
   const currentTime = useCurrentTime();
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load Data
+  // Firebase 인증 및 Firestore 데이터 로드
   useEffect(() => {
-    try {
-        const storedZones = localStorage.getItem("sbs_zones");
-        if (storedZones) setZones(JSON.parse(storedZones));
-        else setZones(INITIAL_ZONES);
+    const initializeFirebase = async () => {
+      try {
+        console.log('🔐 Firebase 초기화 시작...');
 
-        const storedBm = localStorage.getItem("sbs_bookmarks");
-        if (storedBm) setBookmarks(JSON.parse(storedBm));
-        else setBookmarks(INITIAL_BOOKMARKS);
-
-        const storedProj = localStorage.getItem("sbs_projects");
-        if (storedProj) {
-            const parsed = JSON.parse(storedProj);
-            if (Array.isArray(parsed)) setProjects(parsed);
-            else setProjects([]);
+        // 이미 로그인되어 있으면 데이터 로드
+        if (!onAuthStateChange) {
+          await loginAnonymously();
         }
 
-        const storedCats = localStorage.getItem("sbs_archive_cats");
-        if (storedCats) setArchiveCats(JSON.parse(storedCats));
+        // Firestore에서 데이터 로드
+        console.log('📥 Firestore에서 데이터 로드 중...');
+        const zonesData = await getAllDocuments('zones');
+        const bookmarksData = await getAllDocuments('bookmarks');
+        const projectsData = await getAllDocuments('projects');
+        const archiveCatsData = await getAllDocuments('archive_cats');
+        const archiveItemsData = await getAllDocuments('archive_items');
+        const journalsData = await getAllDocuments('journals');
 
-        const storedItems = localStorage.getItem("sbs_archive_items");
-        if (storedItems) setArchiveItems(JSON.parse(storedItems));
+        // 데이터 설정
+        setZones(zonesData.length > 0 ? zonesData : INITIAL_ZONES);
+        setBookmarks(bookmarksData.length > 0 ? bookmarksData : INITIAL_BOOKMARKS);
+        setProjects(Array.isArray(projectsData) ? projectsData : []);
+        setArchiveCats(archiveCatsData);
+        setArchiveItems(archiveItemsData);
+        setJournals(journalsData);
 
-        const storedJournals = localStorage.getItem("sbs_journals");
-        if (storedJournals) setJournals(JSON.parse(storedJournals));
+        console.log('✅ 데이터 로드 완료');
+        setIsInitialized(true);
 
-    } catch (error) {
-        console.error("Failed to load data from localStorage", error);
-        setProjects([]);
-    }
+        // 실시간 구독 (변경사항 자동 동기화)
+        subscribeToCollection('zones', setZones);
+        subscribeToCollection('bookmarks', setBookmarks);
+        subscribeToCollection('projects', setProjects);
+        subscribeToCollection('archive_cats', setArchiveCats);
+        subscribeToCollection('archive_items', setArchiveItems);
+        subscribeToCollection('journals', setJournals);
+
+      } catch (error) {
+        console.error('❌ Firebase 초기화 실패:', error);
+        // 실패 시 초기값으로 설정
+        setZones(INITIAL_ZONES);
+        setBookmarks(INITIAL_BOOKMARKS);
+        setIsInitialized(true);
+      }
+    };
+
+    initializeFirebase();
   }, []);
 
-  // Save Data
-  useEffect(() => localStorage.setItem("sbs_zones", JSON.stringify(zones)), [zones]);
-  useEffect(() => localStorage.setItem("sbs_bookmarks", JSON.stringify(bookmarks)), [bookmarks]);
-  useEffect(() => localStorage.setItem("sbs_projects", JSON.stringify(projects)), [projects]);
-  useEffect(() => localStorage.setItem("sbs_archive_cats", JSON.stringify(archiveCats)), [archiveCats]);
-  useEffect(() => localStorage.setItem("sbs_archive_items", JSON.stringify(archiveItems)), [archiveItems]);
-  useEffect(() => localStorage.setItem("sbs_journals", JSON.stringify(journals)), [journals]);
+  // Firestore에 데이터 저장 (자동 동기화)
+  useEffect(() => {
+    if (!isInitialized) return;
+    zones.forEach((zone) => {
+      saveDocument('zones', zone.index.toString(), zone).catch((err) =>
+        console.warn('⚠️ zones 저장 실패:', err)
+      );
+    });
+  }, [zones, isInitialized]);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+    bookmarks.forEach((bm) => {
+      saveDocument('bookmarks', bm.id, bm).catch((err) =>
+        console.warn('⚠️ bookmarks 저장 실패:', err)
+      );
+    });
+  }, [bookmarks, isInitialized]);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+    projects.forEach((proj) => {
+      saveDocument('projects', proj.id, proj).catch((err) =>
+        console.warn('⚠️ projects 저장 실패:', err)
+      );
+    });
+  }, [projects, isInitialized]);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+    archiveCats.forEach((cat) => {
+      saveDocument('archive_cats', cat.id, cat).catch((err) =>
+        console.warn('⚠️ archive_cats 저장 실패:', err)
+      );
+    });
+  }, [archiveCats, isInitialized]);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+    archiveItems.forEach((item) => {
+      saveDocument('archive_items', item.id, item).catch((err) =>
+        console.warn('⚠️ archive_items 저장 실패:', err)
+      );
+    });
+  }, [archiveItems, isInitialized]);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+    journals.forEach((journal) => {
+      saveDocument('journals', journal.id, journal).catch((err) =>
+        console.warn('⚠️ journals 저장 실패:', err)
+      );
+    });
+  }, [journals, isInitialized]);
 
   // --- Handlers ---
 
@@ -1669,6 +1742,21 @@ const App = () => {
   const selectedProject = projects.find(p => p.id === selectedProjectId);
   const selectedArchiveItem = archiveItems.find(i => i.id === selectedArchiveItemId);
   const selectedJournal = journals.find(j => j.id === selectedJournalId);
+
+  // 로딩 중일 때 표시
+  if (!isInitialized) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="mb-4 flex justify-center">
+            <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          </div>
+          <p className="text-lg font-semibold text-blue-900">데이터 로드 중...</p>
+          <p className="text-sm text-blue-600 mt-2">Firebase에서 데이터를 동기화하고 있습니다</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
