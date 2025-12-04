@@ -5,6 +5,7 @@ import {
   saveDocument,
   getAllDocuments,
   subscribeToCollection,
+  deleteDocument,
 } from "./src/firebase/firestore-service";
 import {
   Briefcase,
@@ -1569,61 +1570,6 @@ const App = () => {
     initFirestore();
   }, []);
 
-  // Firestore에 데이터 저장 (자동 동기화)
-  useEffect(() => {
-    if (!isInitialized) return;
-    zones.forEach((zone) => {
-      saveDocument('zones', zone.index.toString(), zone).catch((err) =>
-        console.warn('⚠️ zones 저장 실패:', err)
-      );
-    });
-  }, [zones, isInitialized]);
-
-  useEffect(() => {
-    if (!isInitialized) return;
-    bookmarks.forEach((bm) => {
-      saveDocument('bookmarks', bm.id, bm).catch((err) =>
-        console.warn('⚠️ bookmarks 저장 실패:', err)
-      );
-    });
-  }, [bookmarks, isInitialized]);
-
-  useEffect(() => {
-    if (!isInitialized) return;
-    projects.forEach((proj) => {
-      saveDocument('projects', proj.id, proj).catch((err) =>
-        console.warn('⚠️ projects 저장 실패:', err)
-      );
-    });
-  }, [projects, isInitialized]);
-
-  useEffect(() => {
-    if (!isInitialized) return;
-    archiveCats.forEach((cat) => {
-      saveDocument('archive_cats', cat.id, cat).catch((err) =>
-        console.warn('⚠️ archive_cats 저장 실패:', err)
-      );
-    });
-  }, [archiveCats, isInitialized]);
-
-  useEffect(() => {
-    if (!isInitialized) return;
-    archiveItems.forEach((item) => {
-      saveDocument('archive_items', item.id, item).catch((err) =>
-        console.warn('⚠️ archive_items 저장 실패:', err)
-      );
-    });
-  }, [archiveItems, isInitialized]);
-
-  useEffect(() => {
-    if (!isInitialized) return;
-    journals.forEach((journal) => {
-      saveDocument('journals', journal.id, journal).catch((err) =>
-        console.warn('⚠️ journals 저장 실패:', err)
-      );
-    });
-  }, [journals, isInitialized]);
-
   // --- Handlers ---
 
   const handleCreateProject = () => {
@@ -1636,6 +1582,10 @@ const App = () => {
       createdAt: new Date().toISOString(),
     };
     setProjects(prev => [newProject, ...prev]);
+    // Firestore에 저장
+    saveDocument('projects', newProject.id, newProject).catch((err) =>
+      console.warn('⚠️ 프로젝트 생성 저장 실패:', err)
+    );
     setSelectedProjectId(newProject.id);
     setIsSidebarOpen(false);
   };
@@ -1678,23 +1628,41 @@ const App = () => {
 
       if (deleteTarget.type === 'project') {
           setProjects(prev => prev.filter(p => p.id !== deleteTarget.id));
+          deleteDocument('projects', deleteTarget.id).catch((err) =>
+            console.warn('⚠️ 프로젝트 삭제 실패:', err)
+          );
           if (selectedProjectId === deleteTarget.id) {
             setSelectedProjectId(null);
           }
       } else if (deleteTarget.type === 'category') {
            setArchiveCats(prev => prev.filter(c => c.id !== deleteTarget.id));
+           deleteDocument('archive_cats', deleteTarget.id).catch((err) =>
+             console.warn('⚠️ 카테고리 삭제 실패:', err)
+           );
            // Cascade delete items
+           const itemsToDelete = archiveItems.filter(i => i.categoryId === deleteTarget.id);
            setArchiveItems(prev => prev.filter(i => i.categoryId !== deleteTarget.id));
+           itemsToDelete.forEach(item => {
+             deleteDocument('archive_items', item.id).catch((err) =>
+               console.warn('⚠️ 아카이브 아이템 삭제 실패:', err)
+             );
+           });
            if (archiveItems.find(i => i.categoryId === deleteTarget.id && i.id === selectedArchiveItemId)) {
                setSelectedArchiveItemId(null);
            }
       } else if (deleteTarget.type === 'archiveItem') {
           setArchiveItems(prev => prev.filter(i => i.id !== deleteTarget.id));
+          deleteDocument('archive_items', deleteTarget.id).catch((err) =>
+            console.warn('⚠️ 아카이브 아이템 삭제 실패:', err)
+          );
           if (selectedArchiveItemId === deleteTarget.id) {
             setSelectedArchiveItemId(null);
           }
       } else if (deleteTarget.type === 'journal') {
           setJournals(prev => prev.filter(j => j.id !== deleteTarget.id));
+          deleteDocument('journals', deleteTarget.id).catch((err) =>
+            console.warn('⚠️ 일지 삭제 실패:', err)
+          );
           if (selectedJournalId === deleteTarget.id) {
             setSelectedJournalId(null);
           }
@@ -1706,15 +1674,28 @@ const App = () => {
 
   const handleUpdateProject = (updated: Project) => {
     setProjects(projects.map(p => p.id === updated.id ? updated : p));
+    // Firestore에 저장
+    saveDocument('projects', updated.id, updated).catch((err) =>
+      console.warn('⚠️ 프로젝트 업데이트 저장 실패:', err)
+    );
   };
 
   const handleCreateCategory = (name: string) => {
     const newCat: ArchiveCategory = { id: generateId(), name };
     setArchiveCats([...archiveCats, newCat]);
+    // Firestore에 저장
+    saveDocument('archive_cats', newCat.id, newCat).catch((err) =>
+      console.warn('⚠️ 카테고리 생성 저장 실패:', err)
+    );
   };
   
   const handleUpdateCategoryName = (id: string, name: string) => {
-      setArchiveCats(archiveCats.map(c => c.id === id ? { ...c, name } : c));
+      const updated = { id, name };
+      setArchiveCats(archiveCats.map(c => c.id === id ? updated : c));
+      // Firestore에 저장
+      saveDocument('archive_cats', id, updated).catch((err) =>
+        console.warn('⚠️ 카테고리 업데이트 저장 실패:', err)
+      );
   };
 
   const handleDeleteCategoryClick = (id: string) => {
