@@ -1508,10 +1508,8 @@ const App = () => {
       try {
         console.log('🔐 Firebase 초기화 시작...');
 
-        // 이미 로그인되어 있으면 데이터 로드
-        if (!onAuthStateChange) {
-          await loginAnonymously();
-        }
+        // 익명 로그인 수행
+        await loginAnonymously();
 
         // Firestore에서 데이터 로드
         console.log('📥 Firestore에서 데이터 로드 중...');
@@ -1534,15 +1532,34 @@ const App = () => {
         setIsInitialized(true);
 
         // 실시간 구독 (변경사항 자동 동기화)
-        subscribeToCollection('zones', setZones);
-        subscribeToCollection('bookmarks', setBookmarks);
-        subscribeToCollection('projects', setProjects);
-        subscribeToCollection('archive_cats', setArchiveCats);
-        subscribeToCollection('archive_items', setArchiveItems);
-        subscribeToCollection('journals', setJournals);
+        console.log('🔔 실시간 구독 시작...');
+        subscribeToCollection('zones', (data) => {
+          console.log('🔄 zones 업데이트:', data.length, '개');
+          setZones(data);
+        });
+        subscribeToCollection('bookmarks', (data) => {
+          console.log('🔄 bookmarks 업데이트:', data.length, '개');
+          setBookmarks(data);
+        });
+        subscribeToCollection('projects', (data) => {
+          console.log('🔄 projects 업데이트:', data.length, '개');
+          setProjects(data);
+        });
+        subscribeToCollection('archive_cats', (data) => {
+          console.log('🔄 archive_cats 업데이트:', data.length, '개');
+          setArchiveCats(data);
+        });
+        subscribeToCollection('archive_items', (data) => {
+          console.log('🔄 archive_items 업데이트:', data.length, '개');
+          setArchiveItems(data);
+        });
+        subscribeToCollection('journals', (data) => {
+          console.log('🔄 journals 업데이트:', data.length, '개');
+          setJournals(data);
+        });
 
-      } catch (error) {
-        console.error('❌ Firebase 초기화 실패:', error);
+      } catch (error: any) {
+        console.error('❌ Firebase 초기화 실패:', error.message || error);
         // 실패 시 초기값으로 설정
         setZones(INITIAL_ZONES);
         setBookmarks(INITIAL_BOOKMARKS);

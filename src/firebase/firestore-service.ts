@@ -19,7 +19,9 @@ import { db, auth } from './config';
  */
 function getUserId(): string {
   if (!auth.currentUser) {
-    throw new Error('사용자가 로그인하지 않았습니다');
+    const errorMsg = '사용자가 로그인하지 않았습니다';
+    console.error('❌', errorMsg);
+    throw new Error(errorMsg);
   }
   return auth.currentUser.uid;
 }
@@ -32,9 +34,24 @@ export async function saveDocument(
   docId: string,
   data: any
 ): Promise<void> {
-  const userId = getUserId();
-  const docRef = doc(db, `users/${userId}/${collectionName}`, docId);
-  await setDoc(docRef, { ...data, updatedAt: new Date() }, { merge: true });
+  try {
+    const userId = getUserId();
+    const docRef = doc(db, `users/${userId}/${collectionName}`, docId);
+
+    await setDoc(
+      docRef,
+      { ...data, updatedAt: new Date().toISOString() },
+      { merge: true }
+    );
+
+    console.log(`✅ Firestore 저장: ${collectionName}/${docId}`);
+  } catch (error: any) {
+    console.error(
+      `❌ Firestore 저장 실패 (${collectionName}/${docId}):`,
+      error.message,
+      error.code
+    );
+  }
 }
 
 /**
