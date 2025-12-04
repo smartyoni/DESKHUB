@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import { loginAnonymously, onAuthStateChange } from "./src/firebase/auth-service";
+import { initializeApp } from "./src/firebase/auth-service";
 import {
   saveDocument,
   getAllDocuments,
   subscribeToCollection,
-  setIsSyncing,
 } from "./src/firebase/firestore-service";
 import {
   Briefcase,
@@ -1502,14 +1501,14 @@ const App = () => {
   const currentTime = useCurrentTime();
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Firebase 인증 및 Firestore 데이터 로드
+  // Firebase 초기화 및 Firestore 데이터 로드
   useEffect(() => {
-    const initializeFirebase = async () => {
+    const initFirestore = async () => {
       try {
         console.log('🔐 Firebase 초기화 시작...');
 
-        // 익명 로그인 수행
-        await loginAnonymously();
+        // 앱 초기화 (로그인 불필요 - 고정 UID 사용)
+        await initializeApp();
 
         // Firestore에서 데이터 로드
         console.log('📥 Firestore에서 데이터 로드 중...');
@@ -1567,7 +1566,7 @@ const App = () => {
       }
     };
 
-    initializeFirebase();
+    initFirestore();
   }, []);
 
   // Firestore에 데이터 저장 (자동 동기화)

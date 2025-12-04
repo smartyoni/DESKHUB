@@ -1,6 +1,5 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth, connectAuthEmulator, setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 // Firebase 설정 (Firebase Console에서 복사)
 const firebaseConfig = {
@@ -17,13 +16,5 @@ export const app = initializeApp(firebaseConfig);
 
 // Firestore 데이터베이스
 export const db = getFirestore(app);
-
-// Firebase Authentication
-export const auth = getAuth(app);
-
-// 로컬 영속성 설정 (오프라인 지원)
-setPersistence(auth, browserLocalPersistence).catch((error) => {
-  console.warn('⚠️ 영속성 설정 실패:', error);
-});
 
 console.log('✅ Firebase 초기화 완료');

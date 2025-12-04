@@ -1,55 +1,40 @@
-import { signInAnonymously, onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from './config';
+/**
+ * 로그인 기능 제거 - 고정 UID 시스템 사용
+ * 각 기기별로 고유한 ID를 생성하여 Firestore에 저장
+ */
 
 /**
- * 익명 로그인
+ * 기기별 고유 ID 생성 및 획득
+ * (localStorage에 저장되므로 같은 기기에서는 항상 같은 ID)
  */
-export async function loginAnonymously(): Promise<User> {
+export function getAppUserId(): string {
+  let userId = localStorage.getItem('app_user_id');
+
+  if (!userId) {
+    // 새로운 ID 생성 (타임스탬프 + 랜덤)
+    userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('app_user_id', userId);
+    console.log('✅ 새로운 기기 ID 생성:', userId);
+  } else {
+    console.log('✅ 기존 기기 ID 사용:', userId);
+  }
+
+  return userId;
+}
+
+/**
+ * Firebase 초기화 (로그인 필요 없음)
+ */
+export async function initializeApp(): Promise<void> {
   try {
-    console.log('🔐 익명 로그인 시도...');
-
-    // 이미 로그인되어 있으면 현재 사용자 반환
-    if (auth.currentUser) {
-      console.log('✅ 이미 로그인됨:', auth.currentUser.uid);
-      return auth.currentUser;
-    }
-
-    const result = await signInAnonymously(auth);
-    console.log('✅ 익명 로그인 성공:', result.user.uid);
-    console.log('📱 사용자 정보:', {
-      uid: result.user.uid,
-      isAnonymous: result.user.isAnonymous,
-      email: result.user.email,
-    });
-    return result.user;
+    console.log('🚀 앱 초기화 시작...');
+    const userId = getAppUserId();
+    console.log('📱 기기 ID:', userId);
+    console.log('✅ 앱 준비 완료');
   } catch (error: any) {
-    console.error('❌ 익명 로그인 실패:');
-    console.error('- 에러 코드:', error.code);
-    console.error('- 에러 메시지:', error.message);
-    console.error('- 전체 에러:', error);
+    console.error('❌ 앱 초기화 실패:', error.message);
     throw error;
   }
-}
-
-/**
- * 인증 상태 모니터링
- */
-export function onAuthStateChange(callback: (user: User | null) => void): () => void {
-  return onAuthStateChanged(auth, callback);
-}
-
-/**
- * 현재 사용자 확인
- */
-export function getCurrentUser(): User | null {
-  return auth.currentUser;
-}
-
-/**
- * 사용자가 로그인되어 있는지 확인
- */
-export function isUserLoggedIn(): boolean {
-  return auth.currentUser !== null;
 }
 
 console.log('✅ Firebase 인증 서비스 로드됨');

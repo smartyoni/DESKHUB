@@ -11,19 +11,14 @@ import {
   onSnapshot,
   Unsubscribe,
 } from 'firebase/firestore';
-import { db, auth } from './config';
+import { db } from './config';
+import { getAppUserId } from './auth-service';
 
 /**
- * 현재 사용자 ID 가져오기
- * (익명 로그인 가정)
+ * 기기별 고정 UID 가져오기
  */
 function getUserId(): string {
-  if (!auth.currentUser) {
-    const errorMsg = '사용자가 로그인하지 않았습니다';
-    console.error('❌', errorMsg);
-    throw new Error(errorMsg);
-  }
-  return auth.currentUser.uid;
+  return getAppUserId();
 }
 
 /**
